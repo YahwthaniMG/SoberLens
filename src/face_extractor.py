@@ -62,6 +62,12 @@ RIGHT_EYE_OUTER = 263
 MIN_EYE_DISTANCE_RATIO = 0.15
 MAX_EYE_DISTANCE_RATIO = 0.80
 
+# Asimetria maxima nariz-ojos para considerar la cara como frontal.
+# 0.0 = cara perfectamente centrada, 1.0 = perfil total.
+# 0.35 permite hasta ~35% de rotacion lateral (three-quarter view aceptable).
+# Bajar a 0.25 para exigir caras mas frontales y estrictas.
+MAX_FACE_YAW_ASYMMETRY = 0.25
+
 
 # ---------------------------------------------------------------------------
 # Detector principal: MediaPipe Tasks
@@ -189,15 +195,23 @@ class OpenCVDetector:
 
 def validate_landmarks(landmarks: Optional[np.ndarray], box: List[int]) -> bool:
     """
-    Verifica que los landmarks formen una cara anatomicamente plausible.
+    Verifica que los landmarks formen una cara frontal anatomicamente plausible.
 
     Comprueba:
     1. Distancia entre ojos proporcional al alto de la cara
     2. Nariz ubicada verticalmente entre los ojos y el menton
-    3. Ojos en posicion horizontal similar (no excesivamente inclinados)
+    3. Ojos no excesivamente inclinados
+    4. FRONTALIDAD: la nariz debe estar centrada horizontalmente entre ambos ojos.
+       En un perfil lateral, la nariz queda cerca de un solo ojo.
+       Se usa la asimetria normalizada: |d_left - d_right| / (d_left + d_right)
+       donde d_left = distancia horizontal nariz-ojo_izquierdo,
+             d_right = distancia horizontal nariz-ojo_derecho.
+       Valor 0 = cara perfectamente frontal.
+       Valor 1 = cara de perfil completo.
+       Se acepta hasta MAX_FACE_YAW_ASYMMETRY (0.35 = ~35% de asimetria).
 
     Returns:
-        True si los landmarks son consistentes con una cara real
+        True si la cara es frontal y anatomicamente plausible
     """
     if landmarks is None or len(landmarks) < 468:
         # Sin landmarks no podemos validar, dejamos pasar
@@ -212,7 +226,7 @@ def validate_landmarks(landmarks: Optional[np.ndarray], box: List[int]) -> bool:
     eye_distance = float(np.linalg.norm(right_eye - left_eye))
     face_height = float(np.linalg.norm(forehead - chin))
 
-    if face_height < 1:
+    if face_height < 1 or eye_distance < 1:
         return False
 
     eye_ratio = eye_distance / face_height
@@ -226,9 +240,34 @@ def validate_landmarks(landmarks: Optional[np.ndarray], box: List[int]) -> bool:
     if not (eye_mid_y < float(nose_tip[1]) < float(chin[1])):
         return False
 
-    # Ojos no deben estar muy inclinados
+    # Ojos no deben estar muy inclinados (cubre caras demasiado rotadas en Z)
     eye_dy = abs(float(right_eye[1]) - float(left_eye[1]))
     if eye_dy > eye_distance * 0.5:
+        return False
+
+    # --- VERIFICACION DE FRONTALIDAD (rotacion en Y / yaw) ---
+    # Distancia horizontal de la nariz a cada ojo
+    nose_x = float(nose_tip[0])
+    left_eye_x = float(left_eye[0])
+    right_eye_x = float(right_eye[0])
+
+    dist_to_left = abs(nose_x - left_eye_x)
+    dist_to_right = abs(nose_x - right_eye_x)
+    total = dist_to_left + dist_to_right
+
+    if total < 1:
+        return False
+
+    # Asimetria normalizada: 0 = frontal perfecto, 1 = perfil total
+    asymmetry = abs(dist_to_left - dist_to_right) / total
+    if asymmetry > MAX_FACE_YAW_ASYMMETRY:
+        return False
+
+    # --- VERIFICACION DE AMBOS OJOS VISIBLES ---
+    # En un perfil, un ojo desaparece o queda muy cerca del otro.
+    # Exigimos que la distancia entre ojos sea al menos 25% del ancho del box.
+    _, _, box_w, _ = box
+    if box_w > 0 and eye_distance < box_w * 0.25:
         return False
 
     return True

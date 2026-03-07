@@ -31,8 +31,8 @@ TEMP_VIDEO_DIR = "../temp_videos"
 
 DETECTOR_TYPE = "mediapipe"
 FACE_OUTPUT_SIZE = 224
-MIN_CONFIDENCE = 0.65
-SAMPLE_INTERVAL = 0.5
+MIN_CONFIDENCE = 0.8
+SAMPLE_INTERVAL = 0.3
 MAX_FACES_PER_VIDEO = 100
 
 # =============================================================================

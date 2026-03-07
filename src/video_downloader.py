@@ -34,11 +34,8 @@ def download_video(url: str, output_dir: str, video_id: str = None) -> str:
 
     output_template = str(output_dir / f"{video_id}.%(ext)s")
 
-    # Configuración de yt-dlp
-    # Usamos 'best' para obtener un formato que ya tenga video+audio combinado
-    # Esto evita necesitar ffmpeg para combinar streams separados
     ydl_opts = {
-        "format": "best[height<=720][ext=mp4]/best[height<=720]/best",
+        "format": "best[height<=1080][ext=mp4]/best[height<=1080]/best",
         "outtmpl": output_template,
         "noplaylist": True,
         "quiet": False,

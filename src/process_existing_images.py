@@ -23,7 +23,7 @@ INPUT_DRUNK = "../data/dataset_images/drunk"
 OUTPUT_SOBER = "../output/sober"
 OUTPUT_DRUNK = "../output/drunk"
 
-# Detector a usar: "mediapipe" (recomendado) u "opencv" (fallback)
+
 DETECTOR_TYPE = "mediapipe"
 FACE_OUTPUT_SIZE = 224
 MIN_CONFIDENCE = 0.5

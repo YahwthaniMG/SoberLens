@@ -1,4 +1,11 @@
-Clasificador: SVM RBF
-Accuracy en test: 93.65%
+Clasificador: Random Forest
+CV accuracy (train): 93.92%
+Accuracy real (test, sin leakage): 89.36%
 Features: 327
 Clases: 0=sober, 1=drunk
+Nota: test set = imagenes originales sin augmentation
+Threshold de decision: 0.3000
+Recall drunk (con threshold): 94.21%
+Recall sober (con threshold): 80.81%
+Falsos negativos (con threshold): 18
+Falsos positivos (con threshold): 81
